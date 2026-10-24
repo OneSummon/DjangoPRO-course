@@ -5,7 +5,7 @@ COPY service /service
 WORKDIR /service
 EXPOSE 8000
 
-RUN apk update && apk add --no-cache build-base postgresql-client postgresql-dev
+RUN apk add --no-cache build-base postgresql-client postgresql-dev
 
 RUN pip install -r /temp/requirements.txt
 

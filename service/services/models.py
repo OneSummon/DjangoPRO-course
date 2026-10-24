@@ -1,5 +1,7 @@
 from django.db import models, transaction
+from django.db.models.signals import post_delete
 from django.core.validators import MaxValueValidator
+from .receivers import delete_cache_total_sum
 
 from clients.models import Client
 from services.tasks import set_comment, set_price
@@ -51,6 +53,15 @@ class Subscription(models.Model):
     plan = models.ForeignKey(Plan, related_name='subscriptions', on_delete=models.PROTECT)
     price = models.PositiveBigIntegerField(default=0)
     comment = models.CharField(max_length=50, default='')
+
+
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        transaction.on_commit(lambda: set_price.delay(self.id))
+        creating = not self.id
+        result = super().save(*args, **kwargs)
+        if creating:
+            transaction.on_commit(lambda: set_price.delay(self.id))
+            transaction.on_commit(lambda: set_comment.delay(self.id))
+        return result
+
+
+post_delete.connect(delete_cache_total_sum, sender=Subscription)
